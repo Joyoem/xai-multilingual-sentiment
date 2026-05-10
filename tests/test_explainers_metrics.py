@@ -25,6 +25,10 @@ class TestExplainersAndMetrics(unittest.TestCase):
         self.assertAlmostEqual(aopc(curve), 0.45)
         self.assertAlmostEqual(naopc(curve), 0.75)
 
+    def test_naopc_zero_or_negative_normalizer(self):
+        curve = [0.4, 0.4, 0.5]
+        self.assertEqual(naopc(curve, reference_probability=0.4), 0.0)
+
 
 if __name__ == "__main__":
     unittest.main()

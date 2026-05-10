@@ -23,8 +23,9 @@ def naopc(probability_curve: Iterable[float], reference_probability: float | Non
     if len(curve) < 2:
         return 0.0
 
-    denom_ref = reference_probability if reference_probability is not None else min(curve)
+    eps = 1e-12
+    denom_ref = reference_probability if reference_probability is not None else curve[-1]
     normalizer = curve[0] - denom_ref
-    if normalizer <= 0:
+    if normalizer <= eps:
         return 0.0
     return aopc(curve) / normalizer

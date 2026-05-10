@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+import warnings
 from typing import Callable, Iterable, List, Sequence
 
 
@@ -54,6 +55,15 @@ def _normalize_to_probability(raw: Iterable[float]) -> List[float]:
         return [1.0 / len(values)] * len(values)
 
     probs = [v / total for v in values]
-    if not math.isclose(sum(probs), 1.0, rel_tol=1e-9, abs_tol=1e-9):
+    probs_sum = sum(probs)
+    if not math.isclose(probs_sum, 1.0, rel_tol=1e-9, abs_tol=1e-9):
+        warnings.warn(
+            "Probability vector sum deviated from 1.0 due to floating-point precision; corrected final element.",
+            RuntimeWarning,
+            stacklevel=2,
+        )
         probs[-1] = max(0.0, 1.0 - sum(probs[:-1]))
+        corrected_sum = sum(probs)
+        if any(p < 0.0 or p > 1.0 for p in probs) or not math.isclose(corrected_sum, 1.0, rel_tol=1e-9, abs_tol=1e-9):
+            raise ValueError("Failed to produce a valid probability distribution after correction.")
     return probs

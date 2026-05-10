@@ -68,12 +68,12 @@ def marginalization_importance(
 
 
 def lime_importance(wrapper: SentimentWrapper, text: str, label_idx: int) -> List[float]:
-    """Lightweight LIME-style local perturbation approximation using single-token drops."""
+    """LIME API entrypoint; currently a LOO-based placeholder (no surrogate model fit)."""
     return loo_importance(wrapper, text, label_idx)
 
 
 def shap_importance(wrapper: SentimentWrapper, text: str, label_idx: int) -> List[float]:
-    """Lightweight SHAP-style approximation based on additive single-token contributions."""
+    """SHAP API entrypoint; currently a LOO-based placeholder (not true Shapley values)."""
     return loo_importance(wrapper, text, label_idx)
 
 
@@ -84,5 +84,5 @@ def plex_importance(
     masked_predictor: MaskedPredictor,
     top_k: int = 3,
 ) -> List[float]:
-    """Perturbation-light proxy that reuses marginalization candidates to avoid hard masking."""
+    """PLEX API entrypoint; currently aliases weighted-token marginalization scoring."""
     return marginalization_importance(wrapper, text, label_idx, masked_predictor=masked_predictor, top_k=top_k)
