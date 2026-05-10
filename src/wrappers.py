@@ -23,7 +23,14 @@ class SentimentWrapper:
         self.predictor = predictor or self._heuristic_predictor
 
     def predict(self, text: str | Sequence[str]) -> EmotionVector:
-        texts = [text] if isinstance(text, str) else list(text)
+        if isinstance(text, str):
+            texts = [text]
+        elif isinstance(text, Sequence):
+            texts = list(text)
+            if any(not isinstance(item, str) for item in texts):
+                raise TypeError("Sequence inputs to SentimentWrapper.predict must contain only strings.")
+        else:
+            raise TypeError("SentimentWrapper.predict expects a string or a sequence of strings.")
         if not texts:
             return []
 

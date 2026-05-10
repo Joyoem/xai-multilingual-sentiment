@@ -33,6 +33,11 @@ class TestSentimentWrapper(unittest.TestCase):
         self.assertAlmostEqual(sum(probs), 1.0)
         self.assertGreater(probs[0], probs[2])
 
+    def test_predict_rejects_non_string_sequence_items(self):
+        wrapper = SentimentWrapper("mdeberta", predictor=lambda _text: [1, 1, 1, 1, 1, 1])
+        with self.assertRaises(TypeError):
+            wrapper.predict([1, 2, 3])  # type: ignore[arg-type]
+
 
 if __name__ == "__main__":
     unittest.main()

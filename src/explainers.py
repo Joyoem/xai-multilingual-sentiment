@@ -42,7 +42,7 @@ def build_mlm_masked_predictor(model_name: str = "bert-base-multilingual-cased")
     try:
         import torch
         from transformers import AutoModelForMaskedLM, AutoTokenizer
-    except Exception as exc:  # pragma: no cover - optional dependency fallback
+    except ImportError as exc:  # pragma: no cover - optional dependency fallback
         raise RuntimeError("transformers and torch are required for MLM marginalization predictor") from exc
 
     tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=True)
@@ -129,7 +129,7 @@ def lime_importance(wrapper: SentimentWrapper, text: str, label_idx: int) -> Lis
 
     try:
         from lime.lime_text import LimeTextExplainer
-    except Exception:
+    except ImportError:
         return loo_importance(wrapper, text, label_idx)
 
     explainer = LimeTextExplainer(class_names=list(wrapper.labels), split_expression=r"\s+")
@@ -159,7 +159,7 @@ def shap_importance(wrapper: SentimentWrapper, text: str, label_idx: int) -> Lis
 
     try:
         import shap
-    except Exception:
+    except ImportError:
         return loo_importance(wrapper, text, label_idx)
 
     def model_fn(texts: Sequence[str]) -> list[list[float]]:
