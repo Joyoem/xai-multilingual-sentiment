@@ -10,7 +10,11 @@ RawModelOutput = Sequence[float] | Mapping[str, object]
 
 
 class SentimentWrapper:
-    """Unified wrapper that always returns a (batch, 6) emotion probability matrix."""
+    """Unified wrapper that always returns a (batch, 6) emotion probability matrix.
+
+    Label order follows BRIGHTER Track-A binary emotions:
+    (anger, disgust, fear, joy, sadness, surprise).
+    """
 
     labels = ("anger", "disgust", "fear", "joy", "sadness", "surprise")
 

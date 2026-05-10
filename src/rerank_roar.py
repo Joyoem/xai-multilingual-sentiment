@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+import shlex
 import subprocess
 import sys
 from dataclasses import dataclass
@@ -129,4 +130,4 @@ def run_regular_lm_retrain(
     try:
         subprocess.run(cmd, check=True)
     except subprocess.CalledProcessError as exc:
-        raise RuntimeError(f"ROAR retraining failed while running: {' '.join(cmd)}") from exc
+        raise RuntimeError(f"ROAR retraining failed while running: {shlex.join(cmd)}") from exc

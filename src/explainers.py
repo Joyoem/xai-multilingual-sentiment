@@ -43,7 +43,10 @@ def build_mlm_masked_predictor(model_name: str = "bert-base-multilingual-cased")
         import torch
         from transformers import AutoModelForMaskedLM, AutoTokenizer
     except ImportError as exc:  # pragma: no cover - optional dependency fallback
-        raise RuntimeError("transformers and torch are required for MLM marginalization predictor") from exc
+        raise RuntimeError(
+            "transformers and torch are required for MLM marginalization predictor "
+            "(install with: pip install transformers torch)."
+        ) from exc
 
     tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=True)
     model = AutoModelForMaskedLM.from_pretrained(model_name)
@@ -146,7 +149,7 @@ def lime_importance(wrapper: SentimentWrapper, text: str, label_idx: int) -> Lis
         )
         weights = dict(explanation.as_list(label=label_idx))
         return [float(weights.get(tok, 0.0)) for tok in tokens]
-    except Exception as exc:  # pragma: no cover - depends on optional backend behavior
+    except (ValueError, KeyError, TypeError, RuntimeError) as exc:  # pragma: no cover - optional backend behavior
         warnings.warn(f"LIME failed ({exc!r}); falling back to LOO scores.", RuntimeWarning, stacklevel=2)
         return loo_importance(wrapper, text, label_idx)
 
@@ -177,7 +180,7 @@ def shap_importance(wrapper: SentimentWrapper, text: str, label_idx: int) -> Lis
         class_values_list = [float(v) for v in class_values]
         if len(class_values_list) == len(tokens):
             return class_values_list
-    except Exception as exc:  # pragma: no cover - depends on optional backend behavior
+    except (ValueError, KeyError, TypeError, RuntimeError) as exc:  # pragma: no cover - optional backend behavior
         warnings.warn(f"SHAP failed ({exc!r}); falling back to LOO scores.", RuntimeWarning, stacklevel=2)
 
     return loo_importance(wrapper, text, label_idx)
