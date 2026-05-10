@@ -3,29 +3,32 @@ from __future__ import annotations
 from typing import Iterable, List
 
 
-def aopc(probability_curve: Iterable[float]) -> float:
-    """Area Over the Perturbation Curve.
+def _as_curve(probability_curve: Iterable[float]) -> List[float]:
+    return [float(x) for x in probability_curve]
 
-    The first element should be the original confidence p0, followed by p1..pk.
-    """
-    curve = list(probability_curve)
+
+def aopc(probability_curve: Iterable[float]) -> float:
+    """Area Over the Perturbation Curve using average confidence drop from p0."""
+    curve = _as_curve(probability_curve)
     if len(curve) < 2:
         return 0.0
 
     p0 = curve[0]
-    drops = [p0 - pk for pk in curve[1:]]
+    drops = [max(0.0, p0 - pk) for pk in curve[1:]]
     return sum(drops) / len(drops)
 
 
 def naopc(probability_curve: Iterable[float], reference_probability: float | None = None) -> float:
-    """Normalized AOPC for cross-model/language comparability."""
-    curve: List[float] = list(probability_curve)
+    """Normalized AOPC in [0,1] for cross-model/language comparison."""
+    curve = _as_curve(probability_curve)
     if len(curve) < 2:
         return 0.0
 
     eps = 1e-12
-    denom_ref = reference_probability if reference_probability is not None else curve[-1]
+    denom_ref = float(reference_probability) if reference_probability is not None else min(curve)
     normalizer = curve[0] - denom_ref
     if normalizer <= eps:
         return 0.0
-    return aopc(curve) / normalizer
+
+    score = aopc(curve) / normalizer
+    return max(0.0, min(1.0, score))
