@@ -46,12 +46,21 @@ class SentimentWrapper:
         return _normalize_to_probability(values)
 
     def _is_llama_style(self, raw: RawModelOutput) -> bool:
-        if "llama" in self.backend_name.lower() and isinstance(raw, Mapping):
-            return True
         if not isinstance(raw, Mapping):
             return False
-        keys = {k.lower() for k in raw.keys()}
-        return any(k in keys for k in self.labels)
+        if "llama" in self.backend_name.lower():
+            return True
+
+        lowered = {str(k).lower(): v for k, v in raw.items()}
+        for label in self.labels:
+            value = lowered.get(label)
+            if isinstance(value, Mapping):
+                value_keys = {str(k).lower() for k in value.keys()}
+                if "yes" in value_keys or "no" in value_keys or "1" in value_keys or "0" in value_keys:
+                    return True
+            if isinstance(value, Sequence) and not isinstance(value, (str, bytes)) and len(value) == 2:
+                return True
+        return False
 
     def _llama_yesno_to_distribution(self, raw: RawModelOutput) -> List[float]:
         if not isinstance(raw, Mapping):
@@ -84,7 +93,8 @@ def _extract_yes_probability(value: object) -> float:
     if isinstance(value, Mapping):
         lowered = {str(k).lower(): v for k, v in value.items()}
         yes = float(lowered.get("yes", lowered.get("1", 0.0)))
-        no = float(lowered.get("no", lowered.get("0", 1.0 - yes)))
+        inferred_no = 1.0 - yes
+        no = float(lowered.get("no", lowered.get("0", inferred_no)))
         denom = yes + no
         return yes / denom if denom > 0 else 0.0
 

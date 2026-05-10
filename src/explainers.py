@@ -195,4 +195,7 @@ def plex_importance(
     marg_scores = marginalization_importance(wrapper, text, label_idx, masked_predictor=masked_predictor, top_k=top_k)
     if not loo_scores:
         return marg_scores
+    if len(loo_scores) != len(marg_scores):
+        warnings.warn("PLEX score-length mismatch detected; returning LOO scores.", RuntimeWarning, stacklevel=2)
+        return loo_scores
     return [(l + m) / 2.0 for l, m in zip(loo_scores, marg_scores)]

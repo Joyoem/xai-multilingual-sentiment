@@ -126,4 +126,7 @@ def run_regular_lm_retrain(
         "--output_json_path",
         str(output_json_path),
     ]
-    subprocess.run(cmd, check=True)
+    try:
+        subprocess.run(cmd, check=True)
+    except subprocess.CalledProcessError as exc:
+        raise RuntimeError(f"ROAR retraining failed while running: {' '.join(cmd)}") from exc

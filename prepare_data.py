@@ -61,6 +61,7 @@ def prepare_track_a(
 
     output_dir.mkdir(parents=True, exist_ok=True)
     counts: dict[str, int] = {}
+    available_langs = sorted({str(row.get(lang_key, "")).strip().lower() for row in dataset})
 
     for lang in languages:
         lang_rows = []
@@ -70,7 +71,10 @@ def prepare_track_a(
             lang_rows.append(_row_to_track_a_record(row, text_key=text_key))
 
         if not lang_rows:
-            raise ValueError(f"No rows found for language='{lang}' in split '{split}'.")
+            raise ValueError(
+                f"No rows found for language='{lang}' in split '{split}'. "
+                f"Available languages: {available_langs}"
+            )
 
         df = pd.DataFrame(lang_rows, columns=["text", *EMOTION_COLUMNS])
         out_path = output_dir / f"{lang}.csv"
