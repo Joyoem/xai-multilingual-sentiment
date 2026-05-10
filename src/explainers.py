@@ -73,7 +73,7 @@ def build_mlm_masked_predictor(model_name: str = "bert-base-multilingual-cased")
 
         candidates: List[Tuple[str, float]] = []
         for token_id, prob in zip(indices.tolist(), values.tolist()):
-            token = tokenizer.convert_ids_to_tokens(int(token_id))
+            token = tokenizer.convert_ids_to_tokens([int(token_id)])[0]
             word = tokenizer.convert_tokens_to_string([token]).strip()
             if not word:
                 continue

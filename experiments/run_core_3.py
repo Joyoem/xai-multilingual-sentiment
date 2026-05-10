@@ -102,7 +102,7 @@ def run_pipeline(
         for row_idx, row in sampled.iterrows():
             text = str(row["text"])
             base_probs = wrapper.predict(text)[0]
-            label_idx = int(base_probs.index(max(base_probs)))
+            label_idx = int(max(enumerate(base_probs), key=lambda item: item[1])[0])
 
             method_scores = _build_method_scores(wrapper, text, label_idx, masked_predictor)
             for method, scores in method_scores.items():

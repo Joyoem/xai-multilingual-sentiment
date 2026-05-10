@@ -86,7 +86,7 @@ class SentimentWrapper:
 
     def _heuristic_predictor(self, text: str) -> Sequence[float]:
         lower = text.lower()
-        logits = [0.0] * 6
+        logits = [0.0] * len(self.labels)
         keyword_map = {
             0: ("angry", "mad", "furious", "hate"),
             1: ("disgust", "gross", "nasty", "revolting"),
