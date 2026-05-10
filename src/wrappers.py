@@ -12,7 +12,8 @@ RawModelOutput = Sequence[float] | Mapping[str, object]
 class SentimentWrapper:
     """Unified wrapper that always returns a (batch, 6) emotion probability matrix.
 
-    Label order follows BRIGHTER Track-A binary emotions:
+    Label order follows BRIGHTER Track-A emotion dimensions (each dimension
+    is binary in the original annotation scheme):
     (anger, disgust, fear, joy, sadness, surprise).
     """
 
@@ -47,8 +48,10 @@ class SentimentWrapper:
     def _to_probabilities(self, raw: RawModelOutput) -> List[float]:
         if self._is_llama_style(raw):
             return _normalize_to_probability(self._llama_yesno_to_distribution(raw))
+        if isinstance(raw, Mapping):
+            raise ValueError("Mapping outputs are only supported for llama-style yes/no predictors.")
 
-        values = [float(x) for x in list(raw)]  # type: ignore[arg-type]
+        values = [float(x) for x in list(raw)]
         if len(values) != len(self.labels):
             raise ValueError(f"Expected {len(self.labels)} outputs, got {len(values)} from {self.backend_name}")
 

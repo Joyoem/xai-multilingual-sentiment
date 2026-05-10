@@ -26,6 +26,7 @@ LANGS: Sequence[str] = ("eng", "afr", "jav")
 
 
 def _default_masked_predictor(prefix: str, suffix: str, _k: int) -> list[tuple[str, float]]:
+    """Deterministic fallback used only when MLM is explicitly disabled."""
     del prefix, suffix
     return [("the", 1.0)]
 
