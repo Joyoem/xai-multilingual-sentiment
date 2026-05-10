@@ -1,6 +1,6 @@
 import unittest
 
-from src.explainers import loo_importance, marginalization_importance
+from src.explainers import loo_importance, marginalization_importance, plex_importance
 from src.metrics import aopc, naopc
 from src.wrappers import SentimentWrapper
 
@@ -18,6 +18,15 @@ class TestExplainersAndMetrics(unittest.TestCase):
             return [("great", 0.7), ("okay", 0.3)]
 
         scores = marginalization_importance(wrapper, "very film", 0, predictor)
+        self.assertEqual(len(scores), 2)
+
+    def test_plex_runs_with_same_length(self):
+        wrapper = SentimentWrapper("toy", predictor=lambda text: [text.count("great") + 1, 1, 1, 1, 1, 1])
+
+        def predictor(_prefix, _suffix, _k):
+            return [("great", 0.7), ("okay", 0.3)]
+
+        scores = plex_importance(wrapper, "very film", 0, predictor)
         self.assertEqual(len(scores), 2)
 
     def test_aopc_and_naopc(self):
