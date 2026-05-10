@@ -103,6 +103,141 @@ class SentimentWrapper:
         return logits
 
 
+def build_mdeberta_predictor(model_name: str = "microsoft/mdeberta-v3-base") -> Callable[[str], Sequence[float]]:
+    """Build a predictor function that uses mDeBERTa model for 6-class emotion prediction.
+
+    Args:
+        model_name: HuggingFace model ID (default: microsoft/mdeberta-v3-base)
+
+    Returns:
+        A predictor function that takes text and returns 6 emotion logits.
+    """
+    try:
+        import torch
+        from transformers import AutoModelForSequenceClassification, AutoTokenizer
+    except ImportError as exc:
+        raise RuntimeError(
+            "transformers and torch are required for mDeBERTa predictor. "
+            "Install with: pip install transformers torch."
+        ) from exc
+
+    tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=True)
+    model = AutoModelForSequenceClassification.from_pretrained(model_name, num_labels=6)
+    model.eval()
+
+    # Move to GPU if available
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model.to(device)
+
+    def predict_fn(text: str) -> Sequence[float]:
+        """Predict emotion logits for text."""
+        encoding = tokenizer(
+            text,
+            truncation=True,
+            max_length=256,
+            padding=False,
+            return_tensors="pt"
+        )
+        # Move tensors to same device as model
+        encoding = {k: v.to(device) for k, v in encoding.items()}
+
+        with torch.no_grad():
+            outputs = model(**encoding)
+            logits = outputs.logits[0]  # Shape: (6,)
+            return logits.cpu().numpy().tolist()
+
+    return predict_fn
+
+
+def build_llama_predictor(model_name: str = "meta-llama/Llama-3-8b", use_vllm: bool = True) -> Callable[[str], Mapping[str, object]]:
+    """Build a predictor function that uses Llama 3 for emotion Yes/No classification.
+
+    Args:
+        model_name: HuggingFace model ID or local path
+        use_vllm: If True, use vLLM for faster inference; otherwise use transformers
+
+    Returns:
+        A predictor function that returns dict with emotion -> {"yes": p, "no": 1-p}
+    """
+    if use_vllm:
+        try:
+            from vllm import LLM, SamplingParams
+        except ImportError as exc:
+            raise RuntimeError(
+                "vLLM is required for optimized Llama inference. "
+                "Install with: pip install vllm."
+            ) from exc
+
+        llm = LLM(model=model_name, dtype="auto")
+        sampling_params = SamplingParams(temperature=0.0, max_tokens=10)
+
+        def predict_fn_vllm(text: str) -> Mapping[str, object]:
+            emotions = ("anger", "disgust", "fear", "joy", "sadness", "surprise")
+            results = {}
+
+            for emotion in emotions:
+                prompt = f'Does this text contain {emotion}? Text: "{text}"\nAnswer (Yes/No):'
+                output = llm.generate([prompt], sampling_params)[0]
+                response = output.outputs[0].text.strip().lower()
+                yes_prob = 1.0 if "yes" in response else (0.5 if "maybe" in response or "both" in response else 0.0)
+                results[emotion] = {"yes": yes_prob, "no": 1.0 - yes_prob}
+
+            return results
+
+        return predict_fn_vllm
+
+    else:
+        try:
+            import torch
+            from transformers import AutoModelForCausalLM, AutoTokenizer
+        except ImportError as exc:
+            raise RuntimeError(
+                "transformers and torch are required for Llama predictor. "
+                "Install with: pip install transformers torch."
+            ) from exc
+
+        tokenizer = AutoTokenizer.from_pretrained(model_name)
+        model = AutoModelForCausalLM.from_pretrained(
+            model_name,
+            torch_dtype=torch.float16 if torch.cuda.is_available() else torch.float32,
+            device_map="auto",
+        )
+        model.eval()
+
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+        def predict_fn_transformers(text: str) -> Mapping[str, object]:
+            emotions = ("anger", "disgust", "fear", "joy", "sadness", "surprise")
+            results = {}
+
+            for emotion in emotions:
+                prompt = f'Does this text contain {emotion}? Text: "{text}"\nAnswer (Yes/No):'
+                inputs = tokenizer(prompt, return_tensors="pt").to(device)
+
+                with torch.no_grad():
+                    outputs = model(**inputs, output_scores=True)
+                    logits = outputs.logits[0, -1, :]
+
+                # Extract probabilities for "Yes" and "No" token IDs
+                yes_token_id = tokenizer.encode("Yes", add_special_tokens=False)[0] if "Yes" in tokenizer.get_vocab() else 7450
+                no_token_id = tokenizer.encode("No", add_special_tokens=False)[0] if "No" in tokenizer.get_vocab() else 3892
+
+                yes_logit = logits[yes_token_id].item() if yes_token_id < len(logits) else 0.0
+                no_logit = logits[no_token_id].item() if no_token_id < len(logits) else 0.0
+
+                # Softmax over Yes/No
+                exp_yes = math.exp(min(yes_logit, 100))
+                exp_no = math.exp(min(no_logit, 100))
+                denom = exp_yes + exp_no
+                yes_prob = exp_yes / denom if denom > 0 else 0.5
+
+                results[emotion] = {"yes": yes_prob, "no": 1.0 - yes_prob}
+
+            return results
+
+        return predict_fn_transformers
+
+
 def _extract_yes_probability(value: object) -> float:
     if isinstance(value, Mapping):
         lowered = {str(k).lower(): v for k, v in value.items()}
