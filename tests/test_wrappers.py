@@ -23,15 +23,15 @@ class TestSentimentWrapper(unittest.TestCase):
                 "joy": {"yes": 0.9, "no": 0.1},
                 "sadness": (0.2, 0.8),
                 "anger": 0.1,
+                "disgust": 0.1,
                 "fear": 0.1,
                 "surprise": 0.2,
-                "neutral": 0.5,
             },
         )
         probs = wrapper.predict("text")[0]
         self.assertEqual(len(probs), 6)
         self.assertAlmostEqual(sum(probs), 1.0)
-        self.assertGreater(probs[0], probs[2])
+        self.assertGreater(probs[3], probs[0])
 
     def test_predict_rejects_non_string_sequence_items(self):
         wrapper = SentimentWrapper("mdeberta", predictor=lambda _text: [1, 1, 1, 1, 1, 1])

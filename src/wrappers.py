@@ -12,7 +12,7 @@ RawModelOutput = Sequence[float] | Mapping[str, object]
 class SentimentWrapper:
     """Unified wrapper that always returns a (batch, 6) emotion probability matrix."""
 
-    labels = ("joy", "sadness", "anger", "fear", "surprise", "neutral")
+    labels = ("anger", "disgust", "fear", "joy", "sadness", "surprise")
 
     def __init__(
         self,
@@ -84,15 +84,15 @@ class SentimentWrapper:
         lower = text.lower()
         logits = [0.0] * 6
         keyword_map = {
-            0: ("love", "great", "happy", "excellent"),
-            1: ("sad", "cry", "down", "depressed"),
-            2: ("angry", "mad", "furious", "hate"),
-            3: ("fear", "scared", "afraid", "terrified"),
-            4: ("wow", "surprised", "unexpected", "amazing"),
+            0: ("angry", "mad", "furious", "hate"),
+            1: ("disgust", "gross", "nasty", "revolting"),
+            2: ("fear", "scared", "afraid", "terrified"),
+            3: ("love", "great", "happy", "excellent"),
+            4: ("sad", "cry", "down", "depressed"),
+            5: ("wow", "surprised", "unexpected", "amazing"),
         }
         for idx, words in keyword_map.items():
             logits[idx] += sum(1.0 for word in words if word in lower)
-        logits[5] = 1.0
         return logits
 
 
@@ -131,7 +131,9 @@ def _normalize_to_probability(raw: Iterable[float]) -> List[float]:
     if not values:
         raise ValueError("Cannot normalize an empty vector")
 
-    values = [max(0.0, v) for v in values]
+    min_v = min(values)
+    if min_v < 0:
+        values = [v - min_v for v in values]
     total = sum(values)
     if total == 0:
         return [1.0 / len(values)] * len(values)

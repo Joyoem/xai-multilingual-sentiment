@@ -190,7 +190,7 @@ def plex_importance(
     masked_predictor: MaskedPredictor,
     top_k: int = 3,
 ) -> List[float]:
-    """Perturbation-light proxy: combine LOO with low-k marginalization for lower query cost."""
+    """Perturbation-light proxy: equal-weight blend of LOO and low-k marginalization for lower query cost."""
     loo_scores = loo_importance(wrapper, text, label_idx)
     marg_scores = marginalization_importance(wrapper, text, label_idx, masked_predictor=masked_predictor, top_k=top_k)
     if not loo_scores:

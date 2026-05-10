@@ -21,7 +21,7 @@ def aopc(probability_curve: Iterable[float]) -> float:
 def naopc(probability_curve: Iterable[float], reference_probability: float | None = None) -> float:
     """Normalized AOPC in [0,1] for cross-model/language comparison.
 
-    Defaults to using the minimum observed confidence in the curve as the
+    Defaults to using the final confidence after full perturbation as the
     normalization reference when no explicit reference_probability is provided.
     """
     curve = _as_curve(probability_curve)
@@ -29,7 +29,7 @@ def naopc(probability_curve: Iterable[float], reference_probability: float | Non
         return 0.0
 
     eps = 1e-12
-    denom_ref = float(reference_probability) if reference_probability is not None else min(curve)
+    denom_ref = float(reference_probability) if reference_probability is not None else curve[-1]
     normalizer = curve[0] - denom_ref
     if normalizer <= eps:
         return 0.0
