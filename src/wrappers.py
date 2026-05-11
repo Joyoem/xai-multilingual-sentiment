@@ -108,6 +108,9 @@ def build_mdeberta_predictor(model_name: str = "microsoft/mdeberta-v3-base") -> 
 
     Args:
         model_name: HuggingFace model ID (default: microsoft/mdeberta-v3-base)
+                   For Kaggle/limited compute, consider:
+                   - "microsoft/mdeberta-v3-small" (~100M params, fastest)
+                   - "xlm-roberta-base" (~270M params, good balance)
 
     Returns:
         A predictor function that takes text and returns 6 emotion logits.
@@ -149,12 +152,30 @@ def build_mdeberta_predictor(model_name: str = "microsoft/mdeberta-v3-base") -> 
     return predict_fn
 
 
-def build_llama_predictor(model_name: str = "meta-llama/Llama-3-8b", use_vllm: bool = True) -> Callable[[str], Mapping[str, object]]:
-    """Build a predictor function that uses Llama 3 for emotion Yes/No classification.
+def build_llama_predictor(
+    model_name: str = "meta-llama/Llama-2-7b-hf",
+    use_vllm: bool = False,
+    device_map: str = "auto"
+) -> Callable[[str], Mapping[str, object]]:
+    """Build a predictor function that uses Llama for emotion Yes/No classification.
 
     Args:
-        model_name: HuggingFace model ID or local path
-        use_vllm: If True, use vLLM for faster inference; otherwise use transformers
+        model_name: HuggingFace model ID or local path.
+                   
+                   RECOMMENDED FOR KAGGLE (8B or smaller):
+                   - "meta-llama/Llama-2-7b-hf" (7B, fits in 16GB GPU) ⭐
+                   - "microsoft/phi-2" (2.7B, very efficient)
+                   - "mistralai/Mistral-7B-v0.1" (7B, good accuracy)
+                   
+                   NOT RECOMMENDED FOR KAGGLE:
+                   - "meta-llama/Llama-3-8b" (needs 20GB+ GPU memory)
+                   - Any 70B+ models (requires multi-GPU)
+        
+        use_vllm: If True, use vLLM for faster inference.
+                 For Kaggle, usually False is more reliable (vLLM requires extra setup).
+        
+        device_map: "auto" for automatic device placement, or specific device string
+                   "auto" works best on Kaggle.
 
     Returns:
         A predictor function that returns dict with emotion -> {"yes": p, "no": 1-p}
@@ -168,7 +189,7 @@ def build_llama_predictor(model_name: str = "meta-llama/Llama-3-8b", use_vllm: b
                 "Install with: pip install vllm."
             ) from exc
 
-        llm = LLM(model=model_name, dtype="auto")
+        llm = LLM(model=model_name, dtype="auto", max_model_len=512)
         sampling_params = SamplingParams(temperature=0.0, max_tokens=10)
 
         def predict_fn_vllm(text: str) -> Mapping[str, object]:
@@ -196,14 +217,51 @@ def build_llama_predictor(model_name: str = "meta-llama/Llama-3-8b", use_vllm: b
                 "Install with: pip install transformers torch."
             ) from exc
 
-        tokenizer = AutoTokenizer.from_pretrained(model_name)
-        model = AutoModelForCausalLM.from_pretrained(
-            model_name,
-            torch_dtype=torch.float16 if torch.cuda.is_available() else torch.float32,
-            device_map="auto",
-        )
+        tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
+        
+        # Set pad token if not defined (common for causal LMs)
+        if tokenizer.pad_token is None:
+            tokenizer.pad_token = tokenizer.eos_token
+        
+        # Try 8-bit quantization to reduce memory footprint (optional)
+        load_in_8bit = False
+        try:
+            import bitsandbytes  # noqa: F401
+            load_in_8bit = True
+        except ImportError:
+            pass
+        
+        try:
+            if load_in_8bit:
+                model = AutoModelForCausalLM.from_pretrained(
+                    model_name,
+                    load_in_8bit=True,
+                    device_map=device_map,
+                    trust_remote_code=True,
+                )
+            else:
+                torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
+                model = AutoModelForCausalLM.from_pretrained(
+                    model_name,
+                    torch_dtype=torch_dtype,
+                    device_map=device_map,
+                    trust_remote_code=True,
+                )
+        except (RuntimeError, OSError) as e:
+            warnings.warn(
+                f"Failed to load {model_name} with device_map='{device_map}': {e}. "
+                f"Falling back to CPU-only mode.",
+                RuntimeWarning,
+                stacklevel=2
+            )
+            model = AutoModelForCausalLM.from_pretrained(
+                model_name,
+                torch_dtype=torch.float32,
+                device_map="cpu",
+                trust_remote_code=True,
+            )
+        
         model.eval()
-
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         def predict_fn_transformers(text: str) -> Mapping[str, object]:
@@ -212,26 +270,37 @@ def build_llama_predictor(model_name: str = "meta-llama/Llama-3-8b", use_vllm: b
 
             for emotion in emotions:
                 prompt = f'Does this text contain {emotion}? Text: "{text}"\nAnswer (Yes/No):'
-                inputs = tokenizer(prompt, return_tensors="pt").to(device)
+                
+                try:
+                    inputs = tokenizer(
+                        prompt,
+                        return_tensors="pt",
+                        truncation=True,
+                        max_length=256
+                    ).to(device)
 
-                with torch.no_grad():
-                    outputs = model(**inputs, output_scores=True)
-                    logits = outputs.logits[0, -1, :]
-
-                # Extract probabilities for "Yes" and "No" token IDs
-                yes_token_id = tokenizer.encode("Yes", add_special_tokens=False)[0] if "Yes" in tokenizer.get_vocab() else 7450
-                no_token_id = tokenizer.encode("No", add_special_tokens=False)[0] if "No" in tokenizer.get_vocab() else 3892
-
-                yes_logit = logits[yes_token_id].item() if yes_token_id < len(logits) else 0.0
-                no_logit = logits[no_token_id].item() if no_token_id < len(logits) else 0.0
-
-                # Softmax over Yes/No
-                exp_yes = math.exp(min(yes_logit, 100))
-                exp_no = math.exp(min(no_logit, 100))
-                denom = exp_yes + exp_no
-                yes_prob = exp_yes / denom if denom > 0 else 0.5
-
-                results[emotion] = {"yes": yes_prob, "no": 1.0 - yes_prob}
+                    with torch.no_grad():
+                        # Use generate for better control over output
+                        output_ids = model.generate(
+                            inputs["input_ids"],
+                            max_new_tokens=5,
+                            temperature=0.0,
+                            top_p=1.0,
+                            do_sample=False,
+                            pad_token_id=tokenizer.pad_token_id,
+                        )
+                    
+                    response = tokenizer.decode(output_ids[0], skip_special_tokens=True).strip().lower()
+                    yes_prob = 1.0 if "yes" in response else (0.5 if "maybe" in response or "both" in response else 0.0)
+                    results[emotion] = {"yes": yes_prob, "no": 1.0 - yes_prob}
+                    
+                except (RuntimeError, ValueError) as e:
+                    warnings.warn(
+                        f"Error predicting emotion '{emotion}': {e}. Using default 0.5 probability.",
+                        RuntimeWarning,
+                        stacklevel=2
+                    )
+                    results[emotion] = {"yes": 0.5, "no": 0.5}
 
             return results
 
