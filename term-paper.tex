@@ -1,0 +1,92 @@
+
+\documentclass[11pt]{article}
+\usepackage{times}
+\usepackage{url}
+\usepackage{latexsym}
+\usepackage[utf8]{inputenc}  %% to get umlauts right
+\usepackage{graphicx}
+\usepackage{covington}
+\usepackage{natbib}
+
+\usepackage{breakcites}
+ 
+\setlength{\topmargin}{-1cm}
+\setlength{\textheight}{23cm}
+\setlength{\oddsidemargin}{0.0cm}
+\setlength{\textwidth}{16cm}
+
+
+\pagestyle{myheadings}    % Go for customized headings
+\markboth{Test}{Names: Project title \hspace{2cm} \today \hfill }
+
+
+\begin{document}
+
+
+\begin{titlepage}
+\includegraphics[height=15mm]{uzh_logo_d_pos}\\
+
+
+\begin{center}
+
+{\sffamily {\Large
+Seminar \\
+\textbf{Model Analysis and Interpretability\\ for Natural Language Processing} \\
+Spring term 2026 \\
+
+\vspace{2cm}
+
+{\huge Title}\\
+
+\vspace{4cm}
+
+\textbf{Author: Zhaoyan, Fan} \\
+	Student Id: xx-xxx-xxx   \\
+
+\vspace{4cm}
+}
+Course instructor: Rico Sennrich\\
+Department of Computational Linguistics
+
+\vfill Submission date: (02.06.2026) 
+
+\vspace{3cm}
+}
+\end{center}
+
+\end{titlepage}
+
+\newpage
+
+Please use this template for your term paper. You can copy it by selecting "copy" in the list view of your projects. It should be max. 8 pages long including tables and figures but excluding the list of references. The following structure is only a suggestion, feel free to change it if that makes sense for your project.
+
+\section{Introduction}
+
+Your motivation for the topic and your research question(s) should go here. It can include a brief summary of your results and conclusions.
+
+\section{Related Work}
+
+A summary of related research should go here. It can be structured with subsections. Please references with author name and year: \citep{hale2001probabilistic} or \citet{hale2001probabilistic}.
+
+\section{Model architectures}
+If you've trained/evaluated a model/ different models, describe their architecture in this section.
+
+\section{Experiments}
+In a typical paper the Experiments section contains a description of models, data, and evaluation methods used in your experiments.
+
+
+\section{Results}
+Please include result tables and figures here. In of psycholinguistic papers, the Results constitute a separate section. In Computational Linguistics, the Results are usually part of the Experiments section. 
+
+\section{Discussion}
+A discussion of your findings and its implications for the field should go here. Importantly, you should also discuss the limitations of your work. 
+ 
+ 
+\section{Conclusion}
+A very short summary of your work goes here: What is the take-home-message that you want the reader to remember? 
+
+
+\bibliography{custom}
+\bibliographystyle{acl_natbib}
+
+\end{document}
