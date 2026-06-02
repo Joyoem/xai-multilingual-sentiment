@@ -44,14 +44,14 @@ Use your experiments under `experiments/` and plots from `notebooks/visualizatio
 │   ├── wrappers.py         # 统一 mDeBERTa 和 Llama 3 概率输出的接口
 │   ├── explainers.py       # 5 种方法的实现 (SHAP, LIME, LOO, Marginalization, PLEX)
 │   ├── metrics.py          # AOPC, NAOPC 指标的数学实现
-│   └── rerank_roar.py      # ROAR 重训练逻辑实现 [cite: 1158-1165]
+│   └── rerank_roar.py      # ROAR 重训练逻辑实现 
 │
 ├── experiments/            # 自动化运行脚本
 │   ├── run_full_28.sh      # 28 语种全量扫描 (PLEX 效率证明)
 │   └── run_core_3.py       # 3 核心语种深度对比 (OOD 本质探究)
 │
 ├── notebooks/              # 用于可视化和 Case Study
-│   └── visualization.ipynb # 绘制热力图与 AOPC 曲线 (解决 Slide 9/13 痛点)
+│   └── analysis.ipynb # 为paper写作绘制热力图与 AOPC 曲线 (解决 Slide 9/13 痛点)
 │
 ├── results/                # 实验产出的 JSON/CSV 数据
 ├── README.md               # 项目介绍、安装说明、实验结论
