@@ -18,43 +18,42 @@ Core methods are implemented in `src/explainers.py`:
 - PLEX-style perturbation-light proxy
 
 Evaluation metrics are in `src/metrics.py`:
-- AOPC
 - NAOPC (normalized AOPC for cross-model comparability)
 
 ## Key Findings (Template)
-Use your experiments under `experiments/` and plots from `notebooks/visualization.ipynb` to report findings, e.g.:
+Use your experiments under `experiments/` and plots from `notebooks/analysis.ipynb` to report findings, e.g.:
 - In low-resource settings (e.g. Javanese), NAOPC can drop sharply, showing explanation instability.
 - Marginalization often gives smoother degradation curves than hard-mask occlusion.
 
 ## Repository Layout
 ```text
 .
-├── data/                   # 存放 BRIGHTER 数据集的子集
-│   ├── track_a/            # 类别标签数据 (Categorical)
-│   │   ├── eng.csv         # 高资源基准 (High)
-│   │   ├── afr.csv         # 中资源对比 (Mid)
-│   │   └── jav.csv         # 零资源挑战 (Zero/Low)
+├── data/                   
+│   ├── track_a/            # Categorical
+│   │   ├── eng.csv         # High
+│   │   ├── afr.csv         # Mid
+│   │   └── jav.csv         # Low
 │
-├── official_baselines/     # 你下载的那 3 个官方脚本
-│   ├── llms.py             # 处理 LLM 推理逻辑
-│   ├── regular_lms_track_ab.py # 处理 BERT 类模型逻辑
+├── official_baselines/     # official scripts
+│   ├── llms.py             # 
+│   ├── regular_lms_track_ab.py # 
 │   └── process_llm_results.py
 │
-├── src/                    # 你的核心实证研究代码 (My Engagement)
-│   ├── wrappers.py         # 统一 mDeBERTa 和 Llama 3 概率输出的接口
-│   ├── explainers.py       # 5 种方法的实现 (SHAP, LIME, LOO, Marginalization, PLEX)
-│   ├── metrics.py          # AOPC, NAOPC 指标的数学实现
-│   └── rerank_roar.py      # ROAR 重训练逻辑实现 
+├── src/                    # My Engagement
+│   ├── wrappers.py         # 
+│   ├── explainers.py       # SHAP, LIME, LOO, Marginalization, PLEX
+│   ├── metrics.py          # NAOPC 
+│   └── rerank_roar.py      # ROAR （not included in paper） 
 │
-├── experiments/            # 自动化运行脚本
-│   ├── run_full_28.sh      # 28 语种全量扫描 (PLEX 效率证明)
-│   └── run_core_3.py       # 3 核心语种深度对比 (OOD 本质探究)
+├── experiments/            # run scripts
+│   ├── run_full_28.sh      # 28 - PLEX （limitd to cost，no implement）
+│   └── run_core_3.py       # 3 core experiment
 │
-├── notebooks/              # 用于可视化和 Case Study
-│   └── analysis.ipynb # 为paper写作绘制热力图与 AOPC 曲线 (解决 Slide 9/13 痛点)
+├── notebooks/              # colab/kaggle environment
+│   └── analysis.ipynb      # results visuaization 
 │
-├── results/                # 实验产出的 JSON/CSV 数据
-├── README.md               # 项目介绍、安装说明、实验结论
-└── requirements.txt        # 环境依赖 (Captum, Transformers, vLLM 等)
+├── results/               
+├── README.md               
+└── requirements.txt       
 
 ```
